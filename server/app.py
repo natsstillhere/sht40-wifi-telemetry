@@ -70,7 +70,7 @@ def _start_mqtt(app):
     def on_connect(client, userdata, flags, reason_code, properties=None):
         if reason_code == 0:
             topics = (app.config["MQTT_TOPIC"], app.config["SHT40_MQTT_TOPIC"])
-            client.subscribe(topics)
+            client.subscribe([(topic, 0) for topic in topics])
             app.logger.info("Subscribed to %s and %s", *topics)
         else:
             app.logger.error("MQTT connection refused: %s", reason_code)
