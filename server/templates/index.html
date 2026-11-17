@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BME280 Telemetry</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #101820; color: #ecf3f8; }
+    body { max-width: 960px; margin: 3rem auto; padding: 0 1rem; }
+    h1 { margin-bottom: .25rem; } .muted { color: #a6b6c3; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 1rem; margin: 2rem 0; }
+    .card { background: #1c2a35; border: 1px solid #334956; border-radius: 12px; padding: 1.2rem; }
+    .value { font-size: 2rem; font-weight: 650; margin-top: .5rem; }
+    table { width: 100%; border-collapse: collapse; } th,td { padding: .75rem; text-align: left; border-bottom: 1px solid #334956; }
+    code { color: #95d5b2; } .error { color: #ff9b9b; }
+  </style>
+</head>
+<body>
+  <h1>BME280 Telemetry</h1>
+  <div class="muted">Live readings received over MQTT · refreshes every 5 seconds</div>
+  <section class="cards">
+    <div class="card">Temperature<div class="value" id="temperature">—</div></div>
+    <div class="card">Pressure<div class="value" id="pressure">—</div></div>
+    <div class="card">Humidity<div class="value" id="humidity">—</div></div>
+  </section>
+  <p class="muted" id="status">Waiting for sensor data…</p>
+  <h2>Recent readings</h2>
+  <table><thead><tr><th>Time (UTC)</th><th>Device</th><th>Temperature</th><th>Pressure</th><th>Humidity</th></tr></thead>
+    <tbody id="rows"></tbody></table>
+  <p class="muted">REST API: <code>/api/latest</code> · <code>/api/readings?limit=100</code></p>
+  <script>
+    const fmt = (n, digits) => n == null ? '—' : Number(n).toFixed(digits);
+    async function refresh() {
+      try {
+        const [latestResponse, listResponse] = await Promise.all([fetch('/api/latest'), fetch('/api/readings?limit=20')]);
+        const latest = (await latestResponse.json()).reading;
+        const readings = (await listResponse.json()).readings;
+        if (latest) {
+          document.querySelector('#temperature').textContent = `${fmt(latest.temperature_c, 2)} °C`;
+          document.querySelector('#pressure').textContent = `${fmt(latest.pressure_hpa, 2)} hPa`;
+          document.querySelector('#humidity').textContent = `${fmt(latest.humidity_pct, 2)} %`;
+          document.querySelector('#status').textContent = `Device ${latest.device_id} · ${new Date(latest.recorded_at).toLocaleString()}`;
+        }
+        const body = document.querySelector('#rows');
+        body.replaceChildren(...readings.map(r => {
+          const tr = document.createElement('tr');
+          [new Date(r.recorded_at).toLocaleString(), r.device_id, `${fmt(r.temperature_c,2)} °C`, `${fmt(r.pressure_hpa,2)} hPa`, `${fmt(r.humidity_pct,2)} %`].forEach(value => {
+            const td = document.createElement('td'); td.textContent = value; tr.appendChild(td);
+          });
+          return tr;
+        }));
+      } catch (error) { document.querySelector('#status').textContent = 'API unavailable'; document.querySelector('#status').className = 'error'; }
+    }
+    refresh(); setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

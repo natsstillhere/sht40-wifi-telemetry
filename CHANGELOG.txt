@@ -1,0 +1,9 @@
+Project Change Log
+==================
+
+2026-11-17
+- Made SHT40 the primary sensor in the project documentation and default MQTT topic.
+- Added guarded startup and MQTT/Wi-Fi cleanup to both MicroPython publishers.
+- Added MQTT subscriber cleanup when the Flask development server exits.
+- Rewrote setup, wiring, broker, REST API, verification, and troubleshooting instructions.
+- Added ignore rules for local environments, credentials files, caches, and SQLite data.
