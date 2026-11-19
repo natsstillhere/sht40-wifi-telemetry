@@ -186,9 +186,7 @@ class TelemetryLauncher:
         except (OSError, urllib.error.URLError, ValueError):
             self._set_status("flask", "Offline", False)
 
-        publisher_running = self.publisher_process is not None and self.publisher_process.poll() is None
-        self._set_status("publisher", "Running" if publisher_running else "Stopped",
-                         publisher_running)
+        self._set_status("publisher", "Boot firmware", None)
 
     def _periodic_refresh(self):
         self._refresh_status()
@@ -222,7 +220,7 @@ class TelemetryLauncher:
 
     def _start_worker(self):
         try:
-            if not PYTHON.is_file() or not MPREMOTE.is_file():
+            if not PYTHON.is_file():
                 raise RuntimeError("Project environment is missing. Follow the setup commands in README.md first.")
             host, port, topic = read_device_settings()
             if not host or host == "192.168.1.10":
@@ -266,14 +264,8 @@ class TelemetryLauncher:
                     raise RuntimeError("Flask did not become ready within 15 seconds.")
                 self.events.put(("log", "Flask API is ready."))
 
-            if self.publisher_process is None or self.publisher_process.poll() is not None:
-                flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
-                flags |= getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-                self.publisher_process = subprocess.Popen(
-                    [str(MPREMOTE), "connect", "auto", "run", str(DEVICE_FILE)],
-                    cwd=str(ROOT), creationflags=flags)
-                self.events.put(("log", "Pico publisher started in its own console window."))
-            self.events.put(("started", "Telemetry started. Open the dashboard to view readings."))
+            self.events.put(("log", "Pico publisher should run from main.py on the board."))
+            self.events.put(("started", "Telemetry server started. Open the dashboard to view Pico readings."))
         except (OSError, SyntaxError, ValueError, RuntimeError) as exc:
             self.events.put(("error", str(exc)))
         finally:
@@ -286,14 +278,6 @@ class TelemetryLauncher:
                 self.events.put(("log", "Flask: " + line.rstrip()))
 
     def stop_all(self):
-        publisher = self.publisher_process
-        if publisher is not None and publisher.poll() is None:
-            try:
-                publisher.send_signal(signal.CTRL_BREAK_EVENT)
-                self._append_log("Stop requested for Pico publisher. Check its console for exit status.")
-            except (OSError, ValueError, AttributeError):
-                publisher.terminate()
-                self._append_log("Pico publisher process stopped.")
         server = self.server_process
         if server is not None and server.poll() is None:
             server.terminate()

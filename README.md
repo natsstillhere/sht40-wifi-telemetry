@@ -4,7 +4,7 @@ MicroPython firmware on a Raspberry Pi Pico W or Pico 2 W reads an SHT40 over I2
 
 For the step-by-step Windows, Pico 2 W, and phone-hotspot test procedure, see [TESTING.md](TESTING.md).
 
-For personal Windows use, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) to open the local startup GUI without a console window. It starts Flask and the Pico publisher using the broker settings in `device/sht40_main.py`; it does not display Wi-Fi credentials. [Run Telemetry.vbs](Run%20Telemetry.vbs) and [Run Telemetry.cmd](Run%20Telemetry.cmd) remain available as fallbacks. The command-line setup and manual fallback are in [Windows Command Reference](#windows-command-reference).
+For personal Windows use, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) to open the local startup GUI without a console window. It starts or opens Flask using the broker settings in `device/sht40_main.py`; it does not display Wi-Fi credentials. The Pico runs independently from its boot-time `main.py`. [Run Telemetry.vbs](Run%20Telemetry.vbs) and [Run Telemetry.cmd](Run%20Telemetry.cmd) remain available as fallbacks. The command-line setup and manual fallback are in [Windows Command Reference](#windows-command-reference).
 
 ## Data flow
 
@@ -94,17 +94,18 @@ Connect the Pico by USB, make sure no serial monitor is using its COM port, and 
 
 ```cmd
 server\.venv\Scripts\mpremote.exe connect auto mip install umqtt.simple
-server\.venv\Scripts\mpremote.exe connect auto fs cp device\sht40_main.py :sht40_main.py
+server\.venv\Scripts\mpremote.exe connect auto fs cp device\sht40_main.py :main.py
+server\.venv\Scripts\mpremote.exe connect auto reset
 ```
 
-Keep the firmware named `sht40_main.py` on the Pico for GUI/manual testing; do not copy it to `main.py` unless you explicitly want it to start automatically at boot.
+The Pico runs the SHT40 firmware automatically from `main.py` whenever it is powered, including when it is disconnected from the PC. Keep `sht40_main.py` as a source copy if desired.
 
 ### Normal startup
 
 1. Connect the PC and Pico to the same phone hotspot.
 2. Ensure Mosquitto is running with a LAN listener on port 1883 and that the firewall allows the Pico on the trusted local network.
 3. Keep the local `MQTT_HOST` in `device/sht40_main.py` set to the PC's current Wi-Fi IP. Keep the hotspot Wi-Fi values in that file local; do not commit or publish them.
-4. Double-click `Run Telemetry.pyw` to use the GUI with no console pop-up. Use `Run Telemetry.vbs` or `Run Telemetry.cmd` as fallbacks. Click **Start telemetry**; the GUI checks Mosquitto, starts Flask, and opens the Pico publisher in a separate console. Use the GUI buttons to open the dashboard/latest JSON or stop the processes.
+4. Double-click `Run Telemetry.pyw` to use the GUI with no console pop-up. Use `Run Telemetry.vbs` or `Run Telemetry.cmd` as fallbacks. Click **Start telemetry**; the GUI checks Mosquitto and starts or opens Flask. The Pico is already managed independently by its boot-time `main.py`; use the GUI buttons to open the dashboard/latest JSON or stop the Flask service.
 
 ### Manual Command Prompt fallback
 
@@ -118,13 +119,9 @@ cd /d "C:\Users\horuas\Documents\Mechatronics Project\server"
 .venv\Scripts\python.exe app.py
 ```
 
-In a second Command Prompt opened at the project root, run:
+The Pico does not need a second Command Prompt: it starts `main.py` automatically after power-up or reset.
 
-```cmd
-server\.venv\Scripts\mpremote.exe connect auto run device\sht40_main.py
-```
-
-Use a third Command Prompt to inspect readings:
+Use a second Command Prompt to inspect readings:
 
 ```cmd
 curl.exe http://127.0.0.1:5000/api/health

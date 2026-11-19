@@ -2,14 +2,14 @@
 
 This is the local end-to-end test procedure for the Raspberry Pi Pico 2 W, SHT40, Windows PC, phone hotspot, Mosquitto, and Flask service. It contains no Wi-Fi credentials. Do not commit or publish local credential changes in `device/sht40_main.py`.
 
-For the quick path, double-click [Run Telemetry.cmd](Run%20Telemetry.cmd) and click **Start telemetry**. The GUI starts the Flask subscriber and Pico publisher, shows service status, and provides dashboard/API buttons. Detailed setup and manual Command Prompt steps are in [README.md](README.md).
+For the quick path, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) and click **Start telemetry**. The GUI starts or opens the Flask subscriber, shows service status, and provides dashboard/API/export buttons. The Pico runs independently from its boot-time `main.py`. Detailed setup and manual Command Prompt steps are in [README.md](README.md).
 
 ## Verified hardware and path
 
 - Board: Raspberry Pi Pico 2 W running MicroPython 1.29.
 - Sensor: SHT40 on I2C0, SDA GP4 and SCL GP5, address `0x44`.
 - Tested path: SHT40 measurement and CRC check, Pico JSON payload, MQTT publish, Flask subscriber, SQLAlchemy record, and `GET /api/sht40/latest`.
-- Pico filesystem needs `lib/umqtt/simple.py` and `sht40_main.py`. Keep it as `sht40_main.py` during testing so it does not auto-run on boot.
+- Pico filesystem needs `lib/umqtt/simple.py` and `main.py`. `main.py` must contain the SHT40 firmware so it publishes whenever the board is powered.
 
 ## Before each test
 
@@ -45,15 +45,17 @@ Set-Location server
 
 Leave this terminal running. It uses the normal SQLite database at `server/instance/readings.db`.
 
-## Run the Pico publisher
+## Install and verify the Pico publisher
 
-Open a second PowerShell at the project root. Close Thonny or any other program using `COM3`, then run:
+Connect the Pico by USB once, close Thonny or any other program using `COM3`, and install the boot firmware:
 
 ```powershell
-server\.venv\Scripts\mpremote.exe connect COM3 run device/sht40_main.py
+server\.venv\Scripts\mpremote.exe connect COM3 mip install umqtt.simple
+server\.venv\Scripts\mpremote.exe connect COM3 fs cp device/sht40_main.py :main.py
+server\.venv\Scripts\mpremote.exe connect COM3 reset
 ```
 
-Expected serial messages include `Wi-Fi connected` and `Published` with an SHT40 JSON payload. Leave the publisher running for recurring readings. Stop it with Ctrl+C. This command runs the local file for testing; it does not install it as boot-time `main.py`.
+Expected serial messages include `Wi-Fi connected` and `Published` with an SHT40 JSON payload. The Pico will continue publishing when the USB cable is unplugged and a 5 V USB adapter supplies power.
 
 ## Read the data
 

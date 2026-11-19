@@ -1,6 +1,12 @@
 Project Change Log
 ==================
 
+2026-11-20
+- Made `main.py` the Pico boot firmware for SHT40 telemetry.
+- Updated the Windows launcher so it manages the Flask service instead of starting a duplicate Pico publisher.
+- Added persistent SQLite storage and TXT export for all SHT40 readings.
+- Added no-console PYW, VBS, and CMD Windows launch options.
+
 2026-11-17
 - Made SHT40 the primary sensor in the project documentation and default MQTT topic.
 - Added guarded startup and MQTT/Wi-Fi cleanup to both MicroPython publishers.
