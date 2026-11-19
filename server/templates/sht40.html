@@ -28,7 +28,7 @@
   <table><thead><tr><th>Time (UTC)</th><th>Device</th><th>Temperature</th><th>Relative humidity</th></tr></thead>
     <tbody id="rows"></tbody></table>
   <p class="muted">SHT40 REST API: <code>/api/sht40/latest</code> · <code>/api/sht40/readings?limit=100</code></p>
-  <p class="nav"><a href="/">BME280 dashboard</a></p>
+  <p class="nav"><a href="/api/sht40/export.txt" download>Export all readings as TXT</a> · <a href="/">BME280 dashboard</a></p>
   <script>
     const fmt = n => n == null ? '—' : Number(n).toFixed(2);
     async function refresh() {

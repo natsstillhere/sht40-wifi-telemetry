@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect
 
@@ -174,6 +174,42 @@ def create_app(test_config=None):
     def sht40_latest():
         row = Reading.query.filter_by(sensor_type="sht40").order_by(Reading.recorded_at.desc()).first()
         return (jsonify(reading=row.as_dict()), 200) if row else (jsonify(reading=None), 200)
+
+    @application.get("/api/sht40/export.txt")
+    def sht40_export_txt():
+        query = Reading.query.filter_by(sensor_type="sht40")
+        device_id = request.args.get("device_id")
+        if device_id:
+            query = query.filter_by(device_id=device_id)
+        since = request.args.get("since")
+        if since:
+            try:
+                parsed = datetime.fromisoformat(since.replace("Z", "+00:00"))
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                query = query.filter(Reading.recorded_at >= parsed)
+            except ValueError:
+                return jsonify(error="since must be an ISO 8601 timestamp"), 400
+
+        rows = query.order_by(Reading.recorded_at.asc()).all()
+        lines = [
+            "SHT40 telemetry export",
+            "recorded_at_utc\tdevice_id\ttemperature_c\thumidity_pct",
+        ]
+        for row in rows:
+            stamp = row.recorded_at
+            if stamp.tzinfo is None:
+                stamp = stamp.replace(tzinfo=timezone.utc)
+            lines.append(
+                f"{stamp.isoformat()}\t{row.device_id}\t"
+                f"{row.temperature_c:.2f}\t{row.humidity_pct:.2f}"
+            )
+        filename = datetime.now(timezone.utc).strftime("sht40_readings_%Y%m%d_%H%M%S.txt")
+        return Response(
+            "\n".join(lines) + "\n",
+            mimetype="text/plain; charset=utf-8",
+            headers={"Content-Disposition": f"attachment; filename={filename}"},
+        )
 
     @application.get("/api/health")
     def health():
