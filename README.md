@@ -4,7 +4,7 @@ MicroPython firmware on a Raspberry Pi Pico W or Pico 2 W reads an SHT40 over I2
 
 For the step-by-step Windows, Pico 2 W, and phone-hotspot test procedure, see [TESTING.md](TESTING.md).
 
-For personal Windows use, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) to open the local startup GUI without a console window. It starts or opens Flask using the broker settings in `device/sht40_main.py`; it does not display Wi-Fi credentials. The Pico runs independently from its boot-time `main.py`. [Run Telemetry.vbs](Run%20Telemetry.vbs) and [Run Telemetry.cmd](Run%20Telemetry.cmd) remain available as fallbacks. The command-line setup and manual fallback are in [Windows Command Reference](#windows-command-reference).
+For personal Windows use, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) to open the local startup GUI without a console window. It starts or opens Flask using the broker settings in `device/main.py`; it does not display Wi-Fi credentials. The Pico runs independently from its boot-time `main.py`. [Run Telemetry.vbs](Run%20Telemetry.vbs) and [Run Telemetry.cmd](Run%20Telemetry.cmd) remain available as fallbacks. The command-line setup and manual fallback are in [Windows Command Reference](#windows-command-reference).
 
 ## Data flow
 
@@ -38,12 +38,12 @@ The firmware uses the SHT40's standard I2C address `0x44` and performs CRC check
    py -m pip install mpremote
    ```
 
-3. Edit `device/sht40_main.py`: set `WIFI_SSID`, `WIFI_PASSWORD`, `MQTT_HOST` to the broker computer's LAN IP, and `MQTT_PORT` if the broker does not use 1883. The default topic is `sensors/sht40`.
+3. Edit `device/main.py`: set `WIFI_SSID`, `WIFI_PASSWORD`, `MQTT_HOST` to the broker computer's LAN IP, and `MQTT_PORT` if the broker does not use 1883. The default topic is `sensors/sht40`.
 4. Connect the Pico by USB, install the MQTT client library, copy the SHT40 firmware to the board as `main.py`, and reboot it:
 
    ```powershell
    mpremote connect auto mip install umqtt.simple
-   mpremote connect auto fs cp device/sht40_main.py :main.py
+   mpremote connect auto fs cp device/main.py :main.py
    mpremote connect auto reset
    ```
 
@@ -94,17 +94,17 @@ Connect the Pico by USB, make sure no serial monitor is using its COM port, and 
 
 ```cmd
 server\.venv\Scripts\mpremote.exe connect auto mip install umqtt.simple
-server\.venv\Scripts\mpremote.exe connect auto fs cp device\sht40_main.py :main.py
+server\.venv\Scripts\mpremote.exe connect auto fs cp device\main.py :main.py
 server\.venv\Scripts\mpremote.exe connect auto reset
 ```
 
-The Pico runs the SHT40 firmware automatically from `main.py` whenever it is powered, including when it is disconnected from the PC. Keep `sht40_main.py` as a source copy if desired.
+The Pico runs the SHT40 firmware automatically from `main.py` whenever it is powered, including when it is disconnected from the PC. `device/main.py` is the primary SHT40 source file.
 
 ### Normal startup
 
 1. Connect the PC and Pico to the same phone hotspot.
 2. Ensure Mosquitto is running with a LAN listener on port 1883 and that the firewall allows the Pico on the trusted local network.
-3. Keep the local `MQTT_HOST` in `device/sht40_main.py` set to the PC's current Wi-Fi IP. Keep the hotspot Wi-Fi values in that file local; do not commit or publish them.
+3. Keep the local `MQTT_HOST` in `device/main.py` set to the PC's current Wi-Fi IP. Keep the hotspot Wi-Fi values in that file local; do not commit or publish them.
 4. Double-click `Run Telemetry.pyw` to use the GUI with no console pop-up. Use `Run Telemetry.vbs` or `Run Telemetry.cmd` as fallbacks. Click **Start telemetry**; the GUI checks Mosquitto and starts or opens Flask. The Pico is already managed independently by its boot-time `main.py`; use the GUI buttons to open the dashboard/latest JSON or stop the Flask service.
 
 ### Manual Command Prompt fallback
@@ -162,7 +162,7 @@ The SHT40 web dashboard is `GET /sht40`; the BME280 dashboard is `GET /`.
 
 ## Optional BME280
 
-`device/main.py` publishes to `sensors/bme280` and requires a MicroPython `bme280` driver in addition to `umqtt.simple`. Set its Wi-Fi and broker values, copy it to the board as `main.py` instead of `sht40_main.py`, and use the BME280 wiring (VIN, GND, SDA to GP4, SCL to GP5). Its dashboard and API endpoints are listed above. Do not copy both firmware scripts to the board as `main.py`.
+`device/bmemain.py` publishes to `sensors/bme280` and requires a MicroPython `bme280` driver in addition to `umqtt.simple`. Set its Wi-Fi and broker values, and copy it to the board as `main.py` only when using a BME280 instead of the primary SHT40. Use the BME280 wiring (VIN, GND, SDA to GP4, SCL to GP5). Its dashboard and API endpoints are listed above. Do not copy both firmware scripts to the board as `main.py`.
 
 ## Troubleshooting
 
@@ -174,8 +174,8 @@ The SHT40 web dashboard is `GET /sht40`; the BME280 dashboard is `GET /`.
 
 ## Project files
 
-- `device/sht40_main.py` - primary SHT40 MicroPython publisher.
-- `device/main.py` - optional BME280 MicroPython publisher.
+- `device/main.py` - primary SHT40 MicroPython publisher and Pico boot firmware.
+- `device/bmemain.py` - optional BME280 MicroPython publisher.
 - `server/app.py` - Flask dashboard routes, REST API, MQTT subscriber, and SQLAlchemy model.
 - `server/templates/` - sensor dashboards.
 - `server/requirements.txt` - Flask, Flask-SQLAlchemy, and Paho MQTT dependencies.

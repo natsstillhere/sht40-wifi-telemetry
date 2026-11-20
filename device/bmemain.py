@@ -1,62 +1,26 @@
-"""SHT40 MQTT publisher for Raspberry Pi Pico W / Pico 2 W (MicroPython).
+"""BME280 MQTT publisher for a Raspberry Pi Pico W (MicroPython).
 
-Wiring: SHT40 VIN->3V3, GND->GND, SDA->GP4, SCL->GP5.
-Uses the SHT40's standard I2C commands directly; no sensor driver needed.
-Publishes SHT40-specific temperature/humidity data to the Flask service.
+Wiring: BME280 VIN->3V3, GND->GND, SDA->GP4, SCL->GP5.
+Install ``umqtt.simple`` and a MicroPython ``bme280`` driver on the board.
 """
-import machine
 import network
 import time
+import machine
 import ubinascii
 import ujson
 from umqtt.simple import MQTTClient
+import bme280
 
 WIFI_SSID = "YOUR_WIFI_SSID"
 WIFI_PASSWORD = "YOUR_WIFI_PASSWORD"
-MQTT_HOST = "192.168.1.10"
+MQTT_HOST = "192.168.1.10"  # broker reachable on the same Wi-Fi network
 MQTT_PORT = 1883
-MQTT_TOPIC = b"sensors/sht40"
+MQTT_TOPIC = b"sensors/bme280"
 PUBLISH_INTERVAL_S = 10
 
-SHT40_ADDRESS = 0x44
-SHT40_MEASURE_HIGH_PRECISION = 0xFD
-
+# On Pico W, GP4/GP5 are I2C0 SDA/SCL respectively.
 i2c = machine.I2C(0, sda=machine.Pin(4), scl=machine.Pin(5), freq=100_000)
-
-
-def crc8(data):
-    """Sensirion CRC-8: polynomial 0x31, initial value 0xFF."""
-    crc = 0xFF
-    for byte in data:
-        crc ^= byte
-        for _ in range(8):
-            crc = ((crc << 1) ^ 0x31) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
-    return crc
-
-
-def read_measurement():
-    i2c.writeto(SHT40_ADDRESS, bytes((SHT40_MEASURE_HIGH_PRECISION,)))
-    time.sleep_ms(10)  # high-precision measurement conversion time
-    data = i2c.readfrom(SHT40_ADDRESS, 6)
-    if crc8(data[0:2]) != data[2] or crc8(data[3:5]) != data[5]:
-        raise OSError("SHT40 CRC check failed")
-
-    raw_temperature = (data[0] << 8) | data[1]
-    raw_humidity = (data[3] << 8) | data[4]
-    temperature_c = -45.0 + 175.0 * raw_temperature / 65535.0
-    humidity_pct = -6.0 + 125.0 * raw_humidity / 65535.0
-    humidity_pct = min(100.0, max(0.0, humidity_pct))
-    return temperature_c, humidity_pct
-
-
-def read_payload():
-    temperature_c, humidity_pct = read_measurement()
-    return {
-        "device_id": ubinascii.hexlify(machine.unique_id()).decode(),
-        "sensor_type": "sht40",
-        "temperature_c": temperature_c,
-        "humidity_pct": humidity_pct,
-    }
+sensor = bme280.BME280(i2c=i2c)
 
 
 def connect_wifi():
@@ -73,14 +37,31 @@ def connect_wifi():
     return wlan
 
 
+def read_payload():
+    # Common drivers format pressure as either "100653Pa" or "1006.53hPa".
+    temperature, pressure, humidity = sensor.values
+    if pressure.endswith("hPa"):
+        pressure_hpa = float(pressure[:-3])
+    elif pressure.endswith("Pa"):
+        pressure_hpa = float(pressure[:-2]) / 100.0
+    else:
+        pressure_hpa = float(pressure)
+    return {
+        "device_id": ubinascii.hexlify(machine.unique_id()).decode(),
+        "sensor_type": "bme280",
+        "temperature_c": float(temperature[:-1]),
+        "pressure_hpa": pressure_hpa,
+        "humidity_pct": float(humidity[:-1]),
+    }
+
+
 def main():
     wlan = None
     client = None
     try:
         wlan = connect_wifi()
-        client_id = b"sht40-" + ubinascii.hexlify(machine.unique_id())
+        client_id = b"bme280-" + ubinascii.hexlify(machine.unique_id())
         client = MQTTClient(client_id, MQTT_HOST, port=MQTT_PORT, keepalive=60)
-
         while True:
             try:
                 if not wlan.isconnected():
@@ -98,7 +79,7 @@ def main():
                 print("Published", payload)
                 time.sleep(PUBLISH_INTERVAL_S)
             except OSError as exc:
-                print("Sensor/MQTT error; reconnecting:", exc)
+                print("MQTT/publish error; reconnecting:", exc)
                 time.sleep(2)
                 try:
                     if not wlan.isconnected():
@@ -108,7 +89,7 @@ def main():
                     print("Reconnect failed:", reconnect_error)
                     time.sleep(5)
     except KeyboardInterrupt:
-        print("SHT40 publisher stopped")
+        print("BME280 publisher stopped")
     finally:
         if client is not None:
             try:
@@ -121,3 +102,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

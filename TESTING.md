@@ -1,6 +1,6 @@
 # Personal SHT40 Test Reference
 
-This is the local end-to-end test procedure for the Raspberry Pi Pico 2 W, SHT40, Windows PC, phone hotspot, Mosquitto, and Flask service. It contains no Wi-Fi credentials. Do not commit or publish local credential changes in `device/sht40_main.py`.
+This is the local end-to-end test procedure for the Raspberry Pi Pico 2 W, SHT40, Windows PC, phone hotspot, Mosquitto, and Flask service. It contains no Wi-Fi credentials. Do not commit or publish local credential changes in `device/main.py`.
 
 For the quick path, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) and click **Start telemetry**. The GUI starts or opens the Flask subscriber, shows service status, and provides dashboard/API/export buttons. The Pico runs independently from its boot-time `main.py`. Detailed setup and manual Command Prompt steps are in [README.md](README.md).
 
@@ -28,7 +28,7 @@ For the quick path, double-click [Run Telemetry.pyw](Run%20Telemetry.pyw) and cl
    (Get-NetIPAddress -AddressFamily IPv4 -InterfaceAlias "Wi-Fi" | Where-Object AddressState -eq Preferred).IPAddress
    ```
 
-5. In `device/sht40_main.py`, set `MQTT_HOST` to that current PC address. The `WIFI_SSID` and `WIFI_PASSWORD` values should match the phone hotspot. Do not put credential values in this document or commit them to GitHub.
+5. In `device/main.py`, set `MQTT_HOST` to that current PC address. The `WIFI_SSID` and `WIFI_PASSWORD` values should match the phone hotspot. Do not put credential values in this document or commit them to GitHub.
 6. If Windows Firewall blocks the Pico, use a Private profile and an inbound TCP 1883 rule limited to the local subnet. Do not expose MQTT through router port forwarding or use an open broker on an untrusted network.
 
 ## Start the Flask subscriber
@@ -51,7 +51,7 @@ Connect the Pico by USB once, close Thonny or any other program using `COM3`, an
 
 ```powershell
 server\.venv\Scripts\mpremote.exe connect COM3 mip install umqtt.simple
-server\.venv\Scripts\mpremote.exe connect COM3 fs cp device/sht40_main.py :main.py
+server\.venv\Scripts\mpremote.exe connect COM3 fs cp device/main.py :main.py
 server\.venv\Scripts\mpremote.exe connect COM3 reset
 ```
 

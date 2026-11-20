@@ -17,10 +17,9 @@ from tkinter import filedialog, messagebox, ttk
 
 
 ROOT = Path(__file__).resolve().parent
-DEVICE_FILE = ROOT / "device" / "sht40_main.py"
+DEVICE_FILE = ROOT / "device" / "main.py"
 SERVER_DIR = ROOT / "server"
 PYTHON = SERVER_DIR / ".venv" / "Scripts" / "python.exe"
-MPREMOTE = SERVER_DIR / ".venv" / "Scripts" / "mpremote.exe"
 HEALTH_URL = "http://127.0.0.1:5000/api/health"
 DASHBOARD_URL = "http://127.0.0.1:5000/sht40"
 LATEST_URL = "http://127.0.0.1:5000/api/sht40/latest"
@@ -140,7 +139,7 @@ class TelemetryLauncher:
         self.log.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        ttk.Label(page, text="Wi-Fi credentials stay in device/sht40_main.py and are not shown here.",
+        ttk.Label(page, text="Wi-Fi credentials stay in device/main.py and are not shown here.",
                   style="Subtitle.TLabel").pack(anchor="w", pady=(9, 0))
 
     def _append_log(self, text):
@@ -224,7 +223,7 @@ class TelemetryLauncher:
                 raise RuntimeError("Project environment is missing. Follow the setup commands in README.md first.")
             host, port, topic = read_device_settings()
             if not host or host == "192.168.1.10":
-                raise RuntimeError("Set MQTT_HOST in device/sht40_main.py to the broker's current LAN IP.")
+                raise RuntimeError("Set MQTT_HOST in device/main.py to the broker's current LAN IP.")
             try:
                 with socket.create_connection((host, port), timeout=2):
                     pass

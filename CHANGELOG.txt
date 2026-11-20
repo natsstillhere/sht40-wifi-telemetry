@@ -2,6 +2,7 @@ Project Change Log
 ==================
 
 2026-11-20
+- Renamed the primary SHT40 firmware to `device/main.py` and the optional BME280 firmware to `device/bmemain.py`.
 - Made `main.py` the Pico boot firmware for SHT40 telemetry.
 - Updated the Windows launcher so it manages the Flask service instead of starting a duplicate Pico publisher.
 - Added persistent SQLite storage and TXT export for all SHT40 readings.
